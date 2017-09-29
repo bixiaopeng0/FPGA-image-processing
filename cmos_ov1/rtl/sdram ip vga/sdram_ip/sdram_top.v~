@@ -1,0 +1,249 @@
+/*-----------------------------------------------------------------------
+
+Date				:		2017-08-29
+Description			:		Design for sdram_top.
+
+-----------------------------------------------------------------------*/
+
+module sdram_top
+(
+	//global clock
+	input					clk,			//system clock
+	input					rst_n,     		//sync reset
+	
+	//sdram interface
+	output					sdram_clk,
+	output					sdram_cke,		//时钟使能
+	output					sdram_cs_n,		//控制信号之一
+	output					sdram_cas_n,	//同上
+	output					sdram_ras_n,	//
+	output					sdram_we_n,		//
+	output			[1:0]	sdram_bank,		//bank地址
+	output			[12:0]	sdram_addr,		//行列地址
+	output			[1:0]	sdram_dqm,		//数据使能
+	inout			[15:0]	sdram_dq		//数据
+
+	//user interface
+
+	
+); 
+
+
+//--------------------------------
+//Funtion :   init            
+wire		[3:0]		init_cmd;
+wire		[12:0]		init_addr;
+wire					flag_init_end;
+
+wire			ref_en;
+wire			ref_req;
+wire			flag_ref_end;
+wire	[3:0]	aref_cmd;
+wire	[12:0]	aref_addr;
+wire	[1:0]	aref_bank;
+
+wire				wr_en;
+wire				wr_req;
+wire				flag_wr_end;
+wire				wr_trig;
+wire		[3:0]	wr_cmd;
+wire		[12:0]	wr_addr;
+wire		[15:0]	wr_dq;
+wire		[4:0]	state;
+
+
+
+sdram_init	init_u1
+(
+	//global clock
+	.	clk             (clk                ),			//system clock
+	.	rst_n           (rst_n              ),     		//sync reset
+	
+	//sdram_init interface
+	.	init_cmd        (init_cmd           ),		//sdram 命令寄存器
+	.	init_addr       (init_addr          ),		//地址线
+	.	flag_init_end   (flag_init_end      )	//sdram初始化标志
+	
+); 
+
+//--------------------------------
+//Funtion :   init    
+
+sdram_afreh		afreh_u2
+(
+	//global clock
+	.	clk             (clk                ),			//system clock
+	.	rst_n           (rst_n              ),     		//sync reset
+	
+	//init		interface
+	.	flag_init_end   (flag_init_end      ),
+	
+	//auto_freh interface
+	.	ref_en          (ref_en             ),
+	.	ref_req         (ref_req            ),
+	.	flag_ref_end    (flag_ref_end       ),
+	
+	//sdram		interface
+	.	aref_cmd        (aref_cmd           ),
+	.	aref_addr       (aref_addr          )
+	
+); 
+//--------------------------------
+//Funtion :   write
+
+sdram_write	write_u3
+(
+	//global clock
+	.	clk(clk),			//system clock
+	.	rst_n(rst_n),     		//sync reset
+	
+	//sdram_write interface
+	.	wr_en(wr_en),			//写使能
+	.	wr_req(wr_req),			//写请求
+	.	flag_wr_end(flag_wr_end),	//写结束
+	.	wr_trig(wr_trig),		//写触发
+
+	//sdram interface
+	.	wr_cmd(wr_cmd),
+	.	wr_addr(wr_addr),
+	//output			[1:0]	wr_bank,
+	.	wr_dq(wr_dq),
+	//afresh interface
+	//input					ref_req  
+	.	state(state)
+);
+
+
+//--------------------------------
+//Funtion :   read
+
+wire				rd_req;
+wire				flag_rd_end;
+wire				rd_wrig;
+wire				rd_en;
+wire		[3:0]	rd_cmd;
+wire		[12:0]	rd_addr;
+wire		[15:0]	rd_dq;
+
+
+
+sdram_read	read_u4
+(
+	//global clock
+	.	clk(clk),			//system clock
+	.	rst_n(rst_n),     		//sync reset
+	
+	//read interface
+	.	rd_req(rd_req),   		//读请求
+	.	flag_rd_end(flag_rd_end),	//读结束标志
+	.	rd_wrig(rd_wrig),
+	.	rd_en(rd_en),
+	
+	//sdram	interface
+	.	rd_cmd(rd_cmd),
+	.	rd_addr(rd_addr),
+//	output			[1:0]	rd_bank,
+	.	rd_dq(rd_dq),
+	.	sdram_dq(sdram_dq),
+	//
+	.	state(state)
+
+	
+); 
+
+//--------------------------------
+//Funtion :   仲裁模块
+
+
+sdram_manage	manage_u5
+(
+	//global clock
+	.	clk(clk_100),			//system clock
+	.	rst_n(rst_n),     		//sync reset
+	
+	//sdram interface
+	.	sdram_clk(sdram_clk),
+	.	sdram_cke(sdram_cke),
+	.	sdram_cas_n(sdram_cas_n),
+	.	sdram_cs_n(sdram_cs_n),
+	.	sdram_dqm(sdram_dqm),
+	.	sdram_bank(sdram_bank),
+	.	sdram_ras_n(sdram_ras_n),
+	.	sdram_we_n(sdram_we_n),
+	.	sdram_addr(sdram_addr),
+	.	sdram_dq(sdram_dq),
+
+	//afresh interface
+	.	ref_req(ref_req),
+	.	ref_en(ref_en) ,
+	.	flag_ref_end(flag_ref_end),
+	.	aref_cmd(aref_cmd),
+	.	aref_addr(aref_addr),
+//	.	aref_bank(aref_bank),
+	
+	//init	interface	
+	.	init_cmd(init_cmd),
+    .	init_addr(init_addr),
+//	.	init_bank(init_bank),
+	.	flag_init_end(flag_init_end),
+	
+	//write	interface
+	.	wr_en(wr_en),
+	.	wr_req(wr_req),
+	.	flag_wr_end(flag_wr_end),
+	.	wr_cmd(wr_cmd),
+	.	wr_addr(wr_addr),
+//	.	wr_bank(wr_bank),
+	.	wr_dq(wr_dq),
+	.	wr_wrig(wr_trig),
+	
+	//read	interface
+	.	rd_en(rd_en),
+	.	rd_req(rd_req),
+	.	flag_rd_end(flag_rd_end),
+	.	rd_cmd(rd_cmd),
+	.	rd_addr(rd_addr),
+//	.	rd_bank(rd_bank),
+	.	rd_wrig(rd_wrig),
+	.	state(state)
+	
+	
+); 
+
+//--------------------------------
+//Funtion : fifo_control
+
+fifo_control
+(
+    //clk   interface
+        input                   clk                     ,       
+        input                   rst_n                   ,   
+        input                   clk_24m                 ,
+        input                   clk_100m                ,    
+   
+    //wrfifo interface
+        input                   ov7670_data_value       ,       
+        input                   ye_end                  ,      
+        input                   wrfifo_read_en          ,       
+        output  reg             wr_trig                 ,       
+        input   wire    [15:0]  wr_data                 ,
+        output  wire    [15:0]  wr_q                    ,
+
+    //rdfifo interface
+        input                   rd_fifo_wr_en           ,
+        input                   rd_fifo_rd_en           ,       
+        output  reg             rd_trig                 ,  
+        input   wire    [15:0]  rd_data                 ,
+        output  wire    [15:0]  rd_q                    ,    
+        
+    //sdram interface
+        output  wire    [ 1:0]  sdram_bank_addr                
+
+);
+
+
+
+
+
+endmodule
+	

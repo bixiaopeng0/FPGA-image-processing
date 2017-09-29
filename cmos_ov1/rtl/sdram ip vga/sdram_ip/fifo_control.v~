@@ -1,0 +1,156 @@
+/*-----------------------------------------------------------------------
+* Date      :       2017/9/20 12:55:50  
+* Version       :       1.0
+* Description   :       Design for.
+* --------------------------------------------------------------------*/
+
+module  fifo_control
+(
+    //clk   interface
+        input                   clk                     ,       
+        input                   rst_n                   ,   
+        input                   clk_24m                 ,
+        input                   clk_50m                 ,    
+   
+    //wrfifo interface
+        input                   wrfifo_write_en         ,       
+        input                   ye_end                  ,      
+        input                   wrfifo_read_en          ,       
+        output  reg             wr_trig                 ,       
+        input   wire    [15:0]  wr_data                 ,
+        output  wire    [15:0]  wr_q                    ,
+
+    //rdfifo interface
+        input                   rd_fifo_wr_en           ,
+        input                   rd_fifo_rd_en           ,       
+        output  reg             rd_trig                 ,  
+        input   wire    [15:0]  rd_data                 ,
+        output  wire    [15:0]  rd_q                    ,    
+        
+    //sdram interface
+        output  wire    [ 1:0]  sdram_bank_addr                
+
+);
+
+
+//--------------------------------
+////Funtion : define
+
+localparam    USE_MAX       =       8'd150                      ;  
+//fifo write sdram
+wire                            wr_rdclk                        ;       
+wire                            wr_wrclk                        ;      
+//wire        [15:0]              wr_data                         ;
+//wire        [15:0]              wr_q                            ;
+wire        [ 9:0]              wr_wruse                        ;
+wire                            wr_rdeq                         ;       
+wire                            wr_wreq                         ;       
+wire                            aclr                            ;
+
+//fifo read sdram
+wire                            rd_rdclk                        ;       
+wire                            rd_wrclk                        ;       
+//wire         [15:0]             rd_data                         ;
+//wire         [15:0]             rd_q                            ;
+wire         [ 9:0]             rd_rduse                        ;
+wire                            rd_rdeq                         ;       
+wire                            rd_wreq                         ;       
+
+reg          [ 2:0]             ye_array                        ;
+wire                            ye_pos                          ;
+
+
+//--------------------------------
+////Funtion : ye_end detect posedge
+
+always @(posedge clk or negedge rst_n)
+begin
+    if(!rst_n)
+        ye_array <= 1'd0;
+    else
+        ye_array <= { ye_array[1:0] , ye_end};
+end
+
+
+//--------------------------------
+////Funtion :  wr_trig
+
+always @(posedge clk or negedge rst_n)
+begin
+    if(!rst_n)
+        wr_trig <= 1'd0;
+    else if(wr_wruse > USE_MAX)
+        wr_trig <= 1'd1;
+    else
+        wr_trig <= 1'd0;
+end
+
+//--------------------------------
+////Funtion :  rd_trig
+
+always @(posedge clk or negedge rst_n)
+begin
+    if(!rst_n)
+        rd_trig <= 1'd0;
+    else if(rd_rduse < USE_MAX)
+        rd_trig <= 1'd1;
+    else
+        rd_trig <= 1'd0;
+end
+
+
+//--------------------------------
+////Funtion : fifodata
+
+
+fifo_1024_16 	wr_sdram_inst
+(
+	.data		(wr_data		),
+	.rdclk		(wr_rdclk		),
+	.rdreq		(wr_rdeq		),
+	.wrclk		(wr_wrclk		),
+	.wrreq		(wr_wreq		),
+	.q			(wr_q			),
+	.rdusedw	(				),
+	.wrusedw    (wr_wruse		),
+    .aclr       (aclr           )           //高电平复位
+);
+
+
+
+fifo_1024_16 	rd_sdram_inst
+(
+	.data 		(rd_data		),
+	.rdclk		(rd_rdclk		),
+	.rdreq		(rd_rdeq		),
+	.wrclk		(rd_wrclk		),
+	.wrreq		(rd_wreq		),
+	.q			(rd_q			),
+	.rdusedw	(rd_rduse		),
+	.wrusedw    (	        	),
+    .aclr       (               )
+);
+
+//--------------------------------
+////Funtion : 
+
+assign      wr_wreq = ov7670_data_value;
+assign      wr_rdeq = wrfifo_read_en;
+
+assign      rd_wreq = rd_fifo_wr_en;
+assign      rd_rdeq = rd_fifo_rd_en;
+
+assign      aclr = (!rst_n) || ye_end;
+
+assign      wr_wrclk = clk_24m;
+assign      wr_rdclk = clk_50m;
+
+assign      rd_wrclk = clk_50m;
+assign      rd_rdclk = clk;
+
+assign      ye_pos = (!ye_array[2] & ye_array[1]);
+assign      sdram_bank_addr = (ye_pos == 1'd1) ? 2'd0 : 2'd1;
+
+endmodule
+
+

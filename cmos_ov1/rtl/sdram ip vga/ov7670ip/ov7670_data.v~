@@ -1,0 +1,150 @@
+/*-----------------------------------------------------------------------
+* Date      :       2017/9/16 16:24:24  
+* Version       :       1.0
+* Description   :       Design for.
+    * --------------------------------------------------------------------*/
+
+module  ov7670_data
+(
+    //clk interface
+        input                   clk                     ,       
+        input                   rst_n                   ,       
+    //ov7670 interface
+        input                   ov7670_pclk             ,      
+        input                   ov7670_href             ,      
+        input                   ov7670_vsync            ,      
+        input           [7:0]   ov7670_data             ,
+        output  wire            ov7670_xclk             ,       
+    //user  interface
+        output  reg     [15:0]  ov7670_data_out         ,
+        input                   clk_24m                       
+);
+
+//--------------------------------
+////Funtion : define 
+wire                            vsync_neg                       ;       
+wire                            vsync_pos                       ;       
+wire                            href_pos                        ;    
+wire        [ 9:0]              cnt_x                           ;
+wire        [ 9:0]              cnt_y                           ;
+//wire                            href_neg                        ;       
+reg                             cnt_byte                        ;       
+//reg         [ 9:0]              cnt_x                           ;
+//reg         [ 9:0]              cnt_y                           ;
+reg         [ 2:0]              vsync_array                     ;
+reg         [ 2:0]              href_array                      ;
+reg                             data_busy                       ;       
+reg         [ 7:0]              data_temp                       ;       
+
+//--------------------------------
+////Funtion : two buffer
+
+always @(posedge clk or negedge rst_n)
+begin
+    if(!rst_n)
+        vsync_array <= 1'd0;
+    else
+        vsync_array <= { vsync_array[1:0] , ov7670_vsync};
+end
+
+always @(posedge clk or negedge rst_n)
+begin
+    if(!rst_n)
+        href_array <= 1'd0;
+    else
+        href_array <= { href_array[1:0] , ov7670_href};
+end
+ 
+//--------------------------------
+////Funtion : data busy
+ 
+always @(posedge clk or negedge rst_n)
+begin
+    if(!rst_n)
+        data_busy <= 1'd0;
+    else if(vsync_neg)
+        data_busy <= 1'd1;
+    else if(vsync_pos)
+        data_busy <= 1'd0;
+end
+
+
+//--------------------------------
+////Funtion : cnt y
+
+always @(posedge clk or negedge rst_n)
+begin
+    if(!rst_n)
+        cnt_y <= 1'd0;
+    else if(data_busy)
+    begin
+        if(href_pos)
+            cnt_y <= cnt_y + 1'b1;
+    end
+    else
+        cnt_y <= 1'd0;
+end
+
+//--------------------------------
+////Funtion : cnt_byte
+
+always @(posedge clk_24m or negedge rst_n)
+begin
+    if(!rst_n)
+        cnt_byte <= 1'd0;
+    else if(ov7670_href)
+        cnt_byte <= cnt_byte + 1'b1;
+    else
+        cnt_byte <= 1'd0;
+end
+
+//--------------------------------
+////Funtion : cnt x
+always @(posedge clk_24m or negedge rst_n)
+begin
+    if(!rst_n)
+        cnt_x <= 1'd0;
+    else if(ov7670_href && cnt_byte)
+        cnt_x <= cnt_x + 1'b1;
+    else if(!ov7670_href)
+        cnt_x <= 1'd0;
+end
+
+//--------------------------------
+////Funtion :  first byte second byte
+
+always @(posedge clk or negedge rst_n)
+begin
+    if(!rst_n)
+        data_temp <= 1'd0;
+    else if(cnt_byte == 1'b0 && ov7670_href)
+        data_temp <= ov7670_data;
+end
+
+always @(posedge clk or negedge rst_n)
+begin
+    if(!rst_n)
+        ov7670_data_out <= 1'd0;
+    else if(cnt_byte == 1'b1 && ov7670_href)
+        ov7670_data_out <= { ov7670_data , data_temp};
+end
+
+
+
+
+
+
+
+
+assign  vsync_neg = vsync_array[2] & !vsync_array[1] ;
+assign  vsync_pos = !vsync_array[2] & vsync_array[1] ;
+
+//assign  href_neg  = href_array[2] & !href_array[1];
+assign  href_pos  = !href_array[2] & href_array[1];
+
+assign  ov7670_xclk = clk_24m;
+
+endmodule
+
+
+
