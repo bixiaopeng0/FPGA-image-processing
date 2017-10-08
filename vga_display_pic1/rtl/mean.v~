@@ -1,0 +1,53 @@
+/*-----------------------------------------------------------------------
+* Date          :       2017/10/7 20:30:01 
+* Version       :       1.0
+* Description   :       Design for.
+* --------------------------------------------------------------------*/
+
+module  mean
+(
+        //clk   interface
+        input                   clk                     ,       
+        input                   rst_n                   ,       
+        
+        //input data
+        input       [ 7:0]      mean_p11 , mean_p12 , mean_p13 ,
+        input       [ 7:0]      mean_p21 , mean_p22 , mean_p23 ,
+        input       [ 7:0]      mean_p31 , mean_p32 , mean_p33
+        
+        //mean interface
+        output      [ 7:0]      mean_data
+);
+
+//--------------------------------
+////Funtion : define
+
+wire        [ 7:0]          max_data1;
+wire
+
+
+
+
+sort_three	sort_one
+(
+        //global clk
+        .clk  (clk)               		   ,       
+        .rst_n(rst_n)               	   ,       
+
+        //input data
+        .data_in1(data_in1)                ,
+        .data_in2(data_in2)                ,
+        .data_in3(data_in3)                ,
+
+        //sort  interface
+        .max_data(max_data)                ,
+        .mid_data(mid_data)                ,
+        .min_data(min_data)            
+
+); 
+
+
+
+endmodule
+
+

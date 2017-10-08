@@ -1,0 +1,34 @@
+/*-----------------------------------------------------------------------
+* Date          :       2017/10/7 19:13:03
+* Version       :       1.0
+* Description   :       Design for 3X3 matrix.
+* --------------------------------------------------------------------*/
+
+module  matrix_3X3
+(       
+        //global    clk
+        input                   clk                     ,       
+        input                   rst_n                   ,
+        //data_in   interface
+        input          [ 7:0]   data_in                 ,
+
+        //user      interface 
+        output  reg    [ 7:0]   matrix_p11 , matrix_p12 , matrix_p13 ,
+        output  reg    [ 7:0]   matrix_p21 , matrix_p22 , matrix_p23 ,
+        output  reg    [ 7:0]   matrix_p31 , matrix_p32 , matrix_p33      
+);
+
+
+
+
+//--------------------------------
+////Funtion : 
+
+
+
+
+
+endmodule
+
+
+
