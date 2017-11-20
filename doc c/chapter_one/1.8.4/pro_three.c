@@ -17,9 +17,9 @@ int main()
 	char output[MAX_LINE];
 	int max  = 0;
 	int num = 0;
-	while((gets(input))!=NULL)
+	while((gets(input))!=NULL)		//gets(s1) gets()函数接受字符串，s1为数组首地址 
 	{
-		num = strlen(input);
+		num = strlen(input);		
 		if(num > max)
 		{
 			max = num;
